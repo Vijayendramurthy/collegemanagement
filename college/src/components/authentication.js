@@ -40,6 +40,12 @@ const StudentAuthPages = ({ onLoginSuccess }) => {
     password: ''
   });
 
+  // Admin OTP flow state
+  const [isAdminOtpPending, setIsAdminOtpPending] = useState(false);
+  const [adminEmailPending, setAdminEmailPending] = useState('');
+  const [adminOtpInput, setAdminOtpInput] = useState('');
+  const [otpMessage, setOtpMessage] = useState('');
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -91,14 +97,68 @@ const StudentAuthPages = ({ onLoginSuccess }) => {
       if (response.ok && data.teacher) {
         onLoginSuccess(data.teacher, false, true);
       } else if (data.admin) {
+        // Admin logged in without OTP (legacy) — directly proceed
         onLoginSuccess(data.admin, true, false);
       } else if (data.student) {
         onLoginSuccess(data.student, false, false);
+      } else if (data.otpSent) {
+        // OTP flow started for admin: show OTP input
+        setIsAdminOtpPending(true);
+        setAdminEmailPending(loginData.emailOrPhone);
+        setOtpMessage(data.message || 'OTP sent to admin email');
       } else {
         alert(data.error || 'Invalid login credentials');
       }
     } catch (err) {
       alert('Login failed. Please try again.');
+    }
+  };
+
+  const handleOtpInputChange = (e) => {
+    setAdminOtpInput(e.target.value.replace(/[^0-9]/g, '').slice(0, 6));
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!adminEmailPending || adminOtpInput.length !== 6) {
+      setOtpMessage('Please enter the 6-digit OTP');
+      return;
+    }
+    try {
+      const resp = await fetch(`${API_BASE}/api/admin/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: adminEmailPending, otp: adminOtpInput })
+      });
+      const body = await resp.json();
+      if (resp.ok && body.admin) {
+        setIsAdminOtpPending(false);
+        setAdminOtpInput('');
+        setOtpMessage('');
+        onLoginSuccess(body.admin, true, false);
+      } else {
+        setOtpMessage(body.error || 'Invalid OTP');
+      }
+    } catch (err) {
+      setOtpMessage('Verification failed. Try again.');
+    }
+  };
+
+  const handleResendOtp = async () => {
+    // Trigger login again to resend OTP (server will regenerate and send)
+    try {
+      const response = await fetch(`${API_BASE}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emailOrPhone: adminEmailPending, password: loginData.password })
+      });
+      const data = await response.json();
+      if (data.otpSent) {
+        setOtpMessage('OTP resent to admin email');
+      } else {
+        setOtpMessage(data.error || 'Failed to resend OTP');
+      }
+    } catch (err) {
+      setOtpMessage('Failed to resend OTP');
     }
   };
 
@@ -226,6 +286,37 @@ const StudentAuthPages = ({ onLoginSuccess }) => {
                       Sign In
                     </button>
                   </form>
+                  {/* Admin OTP panel */}
+                  {isAdminOtpPending && (
+                    <div className="auth-otp-panel" role="dialog" aria-modal="true">
+                      <h3>Admin OTP verification</h3>
+                      <p className="auth-otp-desc">An OTP was sent to the admin email. Enter it below to continue.</p>
+                      <div className="auth-otp-inputs">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={adminOtpInput}
+                          onChange={handleOtpInputChange}
+                          placeholder="Enter 6-digit OTP"
+                          className="auth-otp-input"
+                          aria-label="Admin OTP"
+                        />
+                      </div>
+                      <div className="auth-otp-actions">
+                        <button type="button" className="auth-back-btn" onClick={() => { setIsAdminOtpPending(false); setAdminOtpInput(''); setOtpMessage(''); }}>
+                          Cancel
+                        </button>
+                        <button type="button" className="auth-submit-btn" onClick={handleVerifyOtp}>
+                          Verify OTP
+                        </button>
+                      </div>
+                      <div className="auth-otp-row">
+                        <button type="button" className="auth-link-btn" onClick={handleResendOtp}>Resend OTP</button>
+                        <div className="auth-otp-msg">{otpMessage}</div>
+                      </div>
+                    </div>
+                  )}
                   <div className="auth-footer">
                     <p>
                       Don't have an account?{' '}

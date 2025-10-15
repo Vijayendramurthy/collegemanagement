@@ -216,6 +216,48 @@
   color: #64748b;
   font-size: 1rem;
 }
+
+/* OTP panel styles */
+.auth-otp-panel {
+  margin-top: 20px;
+  background: #fff;
+  border: 1px solid #e6edf8;
+  padding: 18px;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(20,24,40,0.06);
+}
+.auth-otp-panel h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.2rem;
+  color: #0f172a;
+}
+.auth-otp-desc {
+  color: #475569;
+  margin-bottom: 12px;
+}
+.auth-otp-inputs {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.auth-otp-input {
+  width: 220px;
+  padding: 12px 14px;
+  font-size: 1.1rem;
+  text-align: center;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  outline: none;
+}
+.auth-otp-input:focus { border-color: #6366f1; }
+.auth-otp-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+.auth-otp-row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.auth-otp-msg { color: #ef4444; font-size: 0.95rem; }
 .auth-register-header {
   text-align: center;
   margin-bottom: 32px;
