@@ -1,6 +1,9 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+const nodemailer = require('nodemailer');
 // Load environment variables from backend/.env when present
 require('dotenv').config({ path: __dirname + '/.env' });
 
@@ -22,6 +25,68 @@ mongoose.connect(MONGO_URI)
     console.error('MongoDB connection error:', err);
     process.exit(1);
   });
+
+// Prepare nodemailer transporter if credentials provided
+const EMAIL_USER = process.env.EMAIL_USER;
+const EMAIL_PASS = process.env.EMAIL_PASS;
+let mailTransporter = null;
+if (EMAIL_USER && EMAIL_PASS) {
+  mailTransporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: EMAIL_USER, pass: EMAIL_PASS }
+  });
+  // Verify transporter (non-blocking)
+  mailTransporter.verify().then(() => {
+    console.log('SMTP transporter verified');
+  }).catch((err) => {
+    console.error('SMTP transporter verification failed:', err && err.message ? err.message : err);
+    mailTransporter = null; // fallback to file logging
+  });
+}
+
+// In-memory store for OTPs: { email -> { otp, expiresAt } }
+const adminOtps = new Map();
+
+function generateOtp() {
+  return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit
+}
+
+async function sendOtpToEmail(email, otp) {
+  const msg = {
+    from: EMAIL_USER || 'no-reply@collegemanagement.local',
+    to: email,
+    subject: 'Your admin OTP',
+    text: `Your OTP is: ${otp}\nGenerated at: ${new Date().toISOString()}`
+  };
+
+  if (mailTransporter) {
+    try {
+      await mailTransporter.sendMail(msg);
+      // Successfully sent. Do not log the OTP anywhere else.
+      return;
+    } catch (err) {
+      // On failure, fallback to file logging
+      try {
+        const outDir = path.join(__dirname);
+        const logFile = path.join(outDir, 'sent_emails.log');
+        fs.appendFileSync(logFile, `FAILED TO SEND VIA SMTP: ${err && err.message ? err.message : err}\n` + JSON.stringify(msg) + '\n\n');
+      } catch (e) {
+        console.error('Failed to write simulated email log after SMTP error:', e && e.message ? e.message : e);
+      }
+      return;
+    }
+  }
+
+  // Fallback: write to local log file (used when no SMTP configured)
+  const outMsg = `To: ${email}\nSubject: Your admin OTP\n\nYour OTP is: ${otp}\nGenerated at: ${new Date().toISOString()}\n\n`;
+  try {
+    const outDir = path.join(__dirname);
+    const logFile = path.join(outDir, 'sent_emails.log');
+    fs.appendFileSync(logFile, outMsg + '\n');
+  } catch (err) {
+    console.error('Failed to write simulated email log:', err && err.message ? err.message : err);
+  }
+}
 
 
 // Define a schema and model
@@ -82,9 +147,18 @@ app.post('/api/login', async (req, res) => {
       ]
     });
     if (adminUser && adminUser.admindetails && adminUser.admindetails.password === password) {
-      const adminObj = { ...adminUser.admindetails.toObject() };
-      delete adminObj.password;
-      return res.json({ admin: adminObj });
+      // Generate OTP, store in memory, and 'send' it to the admin email (simulated)
+      const email = adminUser.admindetails.gmail;
+      const otp = generateOtp();
+      const expiresAt = Date.now() + (5 * 60 * 1000); // 5 minutes
+      adminOtps.set(email, { otp, expiresAt });
+      try {
+        await sendOtpToEmail(email, otp);
+        return res.json({ otpSent: true, message: 'OTP sent to admin email'});
+      } catch (err) {
+        // If sending throws (shouldn't in our implementation), still return otpSent but note fallback
+        return res.json({ otpSent: true, message: 'OTP generated, but sending failed; check server logs' });
+      }
     }
 
     // Try student login
@@ -116,6 +190,31 @@ app.post('/api/login', async (req, res) => {
     return res.status(400).json({ error: 'User not found or incorrect password' });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Verify admin OTP
+app.post('/api/admin/verify-otp', async (req, res) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) return res.status(400).json({ error: 'email and otp required' });
+  const record = adminOtps.get(email);
+  if (!record) return res.status(400).json({ error: 'No OTP requested for this email' });
+  if (Date.now() > record.expiresAt) {
+    adminOtps.delete(email);
+    return res.status(400).json({ error: 'OTP expired' });
+  }
+  if (record.otp !== otp) return res.status(400).json({ error: 'Invalid OTP' });
+
+  // OTP matched; return admin user object (without password)
+  try {
+    const adminUser = await UserDetails.findOne({ 'admindetails.gmail': email });
+    if (!adminUser) return res.status(404).json({ error: 'Admin not found' });
+    const adminObj = { ...adminUser.admindetails.toObject() };
+    delete adminObj.password;
+    adminOtps.delete(email);
+    return res.json({ admin: adminObj });
+  } catch (err) {
+    return res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -231,6 +330,27 @@ const userDetailsSchema = new mongoose.Schema({
 });
 
 const UserDetails = mongoose.model('UserDetails', userDetailsSchema, 'userdetails');
+
+// Ensure default admin exists (create if missing)
+async function ensureDefaultAdmin() {
+  try {
+    const existing = await UserDetails.findOne({ 'admindetails.gmail': 'vijayendramurthy671@gmail.com' });
+    if (!existing) {
+      const admin = new UserDetails({ admindetails: { firstName: 'Vijay', gmail: 'vijayendramurthy671@gmail.com', password: 'admin@671', phoneNumber: '' } });
+      await admin.save();
+      console.log('Default admin created: vijayendramurthy671@gmail.com / admin@671');
+    } else {
+      console.log('Default admin already exists');
+    }
+  } catch (err) {
+    console.error('Error ensuring default admin:', err.message);
+  }
+}
+
+// Call after mongoose connects
+mongoose.connection.once('open', () => {
+  ensureDefaultAdmin();
+});
 
 // Teacher registration endpoint
 app.post('/api/register-teacher', async (req, res) => {
