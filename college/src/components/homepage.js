@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PostAchievementPage from './achievement';
 import PerformancePage from './performance'; // import at the top
+import { API_BASE } from '../config';
 
 const CollegeDashboard = ({
   isLoggedIn,
@@ -44,7 +45,7 @@ const CollegeDashboard = ({
   // Fetch events when the page is 'events'
   useEffect(() => {
     if (page === 'events') {
-      fetch('http://localhost:5000/api/events')
+  fetch(`${API_BASE}/api/events`)
         .then(res => res.json())
         .then(setEvents);
     }
@@ -53,13 +54,13 @@ const CollegeDashboard = ({
   useEffect(() => {
     if (showStudentDashboard && studentDetails) {
       // Fetch achievements
-      fetch(`http://localhost:5000/api/achievements?reg=${studentDetails.allotedRegistrationName}`)
+  fetch(`${API_BASE}/api/achievements?reg=${studentDetails.allotedRegistrationName}`)
         .then(res => res.json())
         .then(data => setStudentAchievements(data))
         .catch(() => setStudentAchievements([]));
 
       // Fetch registered events (assuming you have a registration collection or field)
-      fetch(`http://localhost:5000/api/events?reg=${studentDetails.allotedRegistrationName}`)
+  fetch(`${API_BASE}/api/events?reg=${studentDetails.allotedRegistrationName}`)
         .then(res => res.json())
         .then(data => setStudentEvents(data))
         .catch(() => setStudentEvents([]));
@@ -282,7 +283,7 @@ const CollegeDashboard = ({
       allotedRegistrationName: studentDetails.allotedRegistrationName,
     };
     try {
-      const response = await fetch('http://localhost:5000/api/achievements', {
+  const response = await fetch(`${API_BASE}/api/achievements`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataToSend),
@@ -393,14 +394,14 @@ const CollegeDashboard = ({
                         marginTop: 8
                       }}
                       onClick={async () => {
-                        const res = await fetch(`http://localhost:5000/api/events/${event._id}/register`, {
+                        const res = await fetch(`${API_BASE}/api/events/${event._id}/register`, {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ reg: studentDetails.allotedRegistrationName })
                         });
                         if (res.ok) {
                           // Refresh events list
-                          fetch('http://localhost:5000/api/events')
+                          fetch(`${API_BASE}/api/events`)
                             .then(res => res.json())
                             .then(setEvents);
                         } else {

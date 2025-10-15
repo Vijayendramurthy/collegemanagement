@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './authentication.css';
 import { Eye, EyeOff, User, Mail, Phone, Calendar, MapPin, GraduationCap, CreditCard } from 'lucide-react';
+import { API_BASE } from '../config';
 
 const StudentAuthPages = ({ onLoginSuccess }) => {
   const [currentPage, setCurrentPage] = useState('login');
@@ -54,10 +55,11 @@ const StudentAuthPages = ({ onLoginSuccess }) => {
     }));
   };
 
+
   const handleRegistrationSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5000/api/register', {
+  const response = await fetch(`${API_BASE}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -76,7 +78,7 @@ const StudentAuthPages = ({ onLoginSuccess }) => {
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5000/api/login', {
+  const response = await fetch(`${API_BASE}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

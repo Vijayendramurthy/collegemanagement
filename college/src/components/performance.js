@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE } from '../config';
 
 // Dummy semesters
 const semesters = ['1', '2', '3', '4', '5', '6', '7', '8'];
@@ -14,7 +15,7 @@ const PerformancePage = ({ studentDetails, onNavigateBack }) => {
   useEffect(() => {
     if (!studentDetails) return;
     setLoading(true);
-    fetch(`http://localhost:5000/api/performance?reg=${studentDetails.allotedRegistrationName}&sem=${selectedSemester}`)
+  fetch(`${API_BASE}/api/performance?reg=${studentDetails.allotedRegistrationName}&sem=${selectedSemester}`)
       .then(res => res.json())
       .then(data => {
         setStudentMarks(data.studentMarks || []);

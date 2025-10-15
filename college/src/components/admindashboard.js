@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-const API_BASE = "http://localhost:5000";
+import { API_BASE } from '../config';
 
 const AdminDashboard = ({ adminDetails, onLogout }) => {
   const [page, setPage] = useState('home');

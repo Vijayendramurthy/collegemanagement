@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { API_BASE } from '../config';
 
 const StudentDashboard = ({
   studentDetails,
@@ -12,12 +13,12 @@ const StudentDashboard = ({
 
   useEffect(() => {
     if (showStudentDashboard && studentDetails) {
-      fetch(`http://localhost:5000/api/achievements?reg=${studentDetails.allotedRegistrationName}`)
+  fetch(`${API_BASE}/api/achievements?reg=${studentDetails.allotedRegistrationName}`)
         .then(res => res.json())
         .then(data => setStudentAchievements(data))
         .catch(() => setStudentAchievements([]));
 
-      fetch(`http://localhost:5000/api/events?reg=${studentDetails.allotedRegistrationName}`)
+  fetch(`${API_BASE}/api/events?reg=${studentDetails.allotedRegistrationName}`)
         .then(res => res.json())
         .then(data => setStudentEvents(data))
         .catch(() => setStudentEvents([]));

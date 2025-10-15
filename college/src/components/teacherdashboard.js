@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-
-const API_BASE = "http://localhost:5000";
+import { API_BASE } from '../config';
 
 const TeacherDashboard = ({ teacherDetails, onLogout }) => {
   const [students, setStudents] = useState([]);
