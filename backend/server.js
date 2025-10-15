@@ -1,16 +1,27 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+// Load environment variables from backend/.env when present
+require('dotenv').config({ path: __dirname + '/.env' });
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Replace with your MongoDB Atlas connection string
-mongoose.connect('mongodb://localhost:27017/studentdb', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+// Require MONGO_URI from environment (no hardcoded fallback)
+const MONGO_URI = process.env.MONGO_URI;
+if (!MONGO_URI) {
+  console.error('FATAL: MONGO_URI is not set in environment. Please set backend/.env or provide MONGO_URI.');
+  process.exit(1);
+}
+
+// Connect to MongoDB (modern driver no longer needs useNewUrlParser/useUnifiedTopology)
+mongoose.connect(MONGO_URI)
+  .then(() => console.log('Connected to MongoDB'))
+  .catch((err) => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+  });
 
 
 // Define a schema and model
@@ -436,5 +447,10 @@ app.get('/api/achievements', async (req, res) => {
   res.json(achievements);
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
+if (!PORT) {
+  console.error('FATAL: PORT is not set in environment. Please set backend/.env or provide PORT.');
+  process.exit(1);
+}
+
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
