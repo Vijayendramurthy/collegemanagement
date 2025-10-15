@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import './authentication.css';
 import { Eye, EyeOff, User, Mail, Phone, Calendar, MapPin, GraduationCap, CreditCard } from 'lucide-react';
-import { API_BASE } from '../config';
+// Use environment variable REACT_APP_API_BASE (defined in college/.env or your deploy env)
+const API_BASE = process.env.REACT_APP_API_BASE;
 
 const StudentAuthPages = ({ onLoginSuccess }) => {
   const [currentPage, setCurrentPage] = useState('login');

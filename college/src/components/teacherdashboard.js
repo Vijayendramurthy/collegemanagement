@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { API_BASE } from '../config';
+// Use environment variable REACT_APP_API_BASE (defined in college/.env or your deploy env)
+const API_BASE = process.env.REACT_APP_API_BASE;
 
 const TeacherDashboard = ({ teacherDetails, onLogout }) => {
   const [students, setStudents] = useState([]);

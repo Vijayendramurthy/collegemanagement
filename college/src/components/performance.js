@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { API_BASE } from '../config';
+// Use environment variable REACT_APP_API_BASE (defined in college/.env or your deploy env)
+const API_BASE = process.env.REACT_APP_API_BASE;
 
 // Dummy semesters
 const semesters = ['1', '2', '3', '4', '5', '6', '7', '8'];

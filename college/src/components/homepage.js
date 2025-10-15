@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import PostAchievementPage from './achievement';
 import PerformancePage from './performance'; // import at the top
-import { API_BASE } from '../config';
+// Use environment variable REACT_APP_API_BASE (defined in college/.env or your deploy env)
+const API_BASE = process.env.REACT_APP_API_BASE;
 
 const CollegeDashboard = ({
   isLoggedIn,
